@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Environment
+.env
+*.env.local
+
+# Data (large files — do not commit)
+data/
+mongo_data/
+qdrant_data/
+ollama_data/
+
+# IDE
+.vscode/
+.idea/
+
+# Conda
+*.conda

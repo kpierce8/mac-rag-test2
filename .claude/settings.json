@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker exec mongo_db mongosh geospatial --quiet --eval ':*)",
+      "Read(//Users/ken/**)",
+      "Bash(python3 -c \"import sys,json; [print\\(m[''Source''],''→'',m[''Destination'']\\) for m in json.load\\(sys.stdin\\)]\")"
+    ]
+  }
+}
