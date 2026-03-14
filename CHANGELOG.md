@@ -2,6 +2,17 @@
 
 All notable changes to the Geospatial Knowledge Extraction Pipeline are documented here.
 
+## [0.1.1] — 2026-03-14
+
+### Added
+- GETTING_STARTED.md guide covering Phase 0 (foundation) and Phase 1 (spatial extraction)
+- Step-by-step environment setup (conda, Ollama, Docker, .env)
+- Phase 0 implementation walkthrough (schemas, MongoDB, Qdrant, ingest/query CLIs)
+- Phase 1 implementation walkthrough (pydantic-ai agent, structural validators,
+  escalation queue, 10-document evaluation)
+- Cherry-pick reference table mapping mac-rag-test v1 code to v2 targets
+- Troubleshooting section for common setup issues
+
 ## [0.1.0] — 2026-03-14
 
 ### Added
