@@ -3,7 +3,13 @@
     "allow": [
       "Bash(docker exec mongo_db mongosh geospatial --quiet --eval ':*)",
       "Read(//Users/ken/**)",
-      "Bash(python3 -c \"import sys,json; [print\\(m[''Source''],''→'',m[''Destination'']\\) for m in json.load\\(sys.stdin\\)]\")"
+      "Bash(python3 -c \"import sys,json; [print\\(m[''Source''],''→'',m[''Destination'']\\) for m in json.load\\(sys.stdin\\)]\")",
+      "Bash(~/miniconda3/envs/geo-pipeline/bin/pip install:*)",
+      "Bash(conda run:*)"
+    ],
+    "additionalDirectories": [
+      "/Users/ken/DLRepos/mac-rag-test2",
+      "/Users/ken/DLRepos/mac-rag-test/data"
     ]
   }
 }
