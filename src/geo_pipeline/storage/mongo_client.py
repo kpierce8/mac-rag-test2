@@ -70,3 +70,11 @@ def insert_chunks(db: Database, chunks: list[DocumentChunk]) -> list[str]:
 
 def get_chunks_by_doc(db: Database, source_doc_id: str) -> list[dict]:
     return list(db.chunks.find({"source_doc_id": source_doc_id}))
+
+
+def get_docs_by_folder(db: Database, folder_path: str) -> list[dict]:
+    """Find all documents ingested from a given folder (prefix match on source_path)."""
+    import re
+
+    prefix = re.escape(folder_path.rstrip("/") + "/")
+    return list(db.documents.find({"source_path": {"$regex": f"^{prefix}"}}))

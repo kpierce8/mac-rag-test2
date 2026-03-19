@@ -86,13 +86,30 @@ def embed_and_upsert(
     return point_id
 
 
-def search(query_text: str, top_k: int = 5) -> list[dict]:
-    """Search for similar chunks by text query."""
+def search(
+    query_text: str,
+    top_k: int = 5,
+    source_doc_ids: list[str] | None = None,
+) -> list[dict]:
+    """Search for similar chunks by text query.
+
+    If source_doc_ids is provided, results are filtered to only those documents.
+    """
+    from qdrant_client.models import FieldCondition, Filter, MatchAny
+
     client = get_client()
     query_vector = embed_text(query_text)
+
+    query_filter = None
+    if source_doc_ids:
+        query_filter = Filter(
+            must=[FieldCondition(key="source_doc_id", match=MatchAny(any=source_doc_ids))]
+        )
+
     results = client.query_points(
         collection_name=TEXT_COLLECTION,
         query=query_vector,
+        query_filter=query_filter,
         limit=top_k,
         with_payload=True,
     )

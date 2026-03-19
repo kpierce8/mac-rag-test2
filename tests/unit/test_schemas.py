@@ -44,6 +44,19 @@ class TestDocumentRecord:
         assert restored.filename == "test.pdf"
         assert restored.extraction_status == "pending"
         assert restored.pipeline_version == "0.1.0"
+        assert restored.source_path is None
+
+    def test_with_source_path(self):
+        doc = DocumentRecord(
+            filename="test.pdf",
+            file_hash="abc123def456",
+            total_pages=10,
+            file_size_bytes=5000,
+            source_path="/Users/test/data/project/test.pdf",
+        )
+        dumped = doc.model_dump()
+        restored = DocumentRecord(**dumped)
+        assert restored.source_path == "/Users/test/data/project/test.pdf"
 
     def test_all_statuses(self):
         for status in ("pending", "complete", "failed", "needs_review"):

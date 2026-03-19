@@ -128,6 +128,7 @@ def ingest_pdf(
         file_hash=file_hash,
         total_pages=total_pages,
         file_size_bytes=pdf_path.stat().st_size,
+        source_path=str(pdf_path.resolve()),
     )
     doc_id = upsert_document(db, doc_record)
     console.print(f"  Document stored: [cyan]{doc_id}[/cyan]")

@@ -18,3 +18,4 @@ class DocumentRecord(BaseModel):
         "pending"
     )
     pipeline_version: str = "0.1.0"
+    source_path: str | None = None  # absolute path at ingest time
