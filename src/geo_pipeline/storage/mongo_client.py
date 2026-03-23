@@ -34,6 +34,8 @@ def ensure_indexes(db: Database) -> None:
         db.spatial_refs.create_index([("geometry", GEOSPHERE)])
     except Exception as exc:
         logger.warning("2dsphere index skipped (may need geometry data first): %s", exc)
+    db.extractions.create_index("source_doc_ids")
+    db.extractions.create_index("created_at")
     db.escalation_queue.create_index(
         [("file_hash", 1), ("reason", 1)], unique=True
     )
@@ -70,6 +72,13 @@ def insert_chunks(db: Database, chunks: list[DocumentChunk]) -> list[str]:
 
 def get_chunks_by_doc(db: Database, source_doc_id: str) -> list[dict]:
     return list(db.chunks.find({"source_doc_id": source_doc_id}))
+
+
+def insert_extraction(db: Database, extraction: dict) -> str:
+    """Insert a structured extraction result. Returns the MongoDB _id as string."""
+    extraction["created_at"] = datetime.now(timezone.utc)
+    result = db.extractions.insert_one(extraction)
+    return str(result.inserted_id)
 
 
 def get_docs_by_folder(db: Database, folder_path: str) -> list[dict]:

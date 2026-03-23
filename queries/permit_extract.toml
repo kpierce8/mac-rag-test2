@@ -1,0 +1,21 @@
+# Example: structured extraction of environmental permitting data
+query = "Extract environmental permitting data from this project"
+folder = "/Users/ken/DLRepos/mac-rag-test2/data/35564/"
+structured = true
+top_k = 12
+model = "qwen2.5vl:7b"
+system_prompt = """
+You are an environmental permitting data extraction assistant.
+Extract the following fields as a JSON object. Use null for unknowns.
+
+{
+  "project_name": "string",
+  "permit_type": "string",
+  "species": ["list of species mentioned"],
+  "bankfull_width_ft": "number or null",
+  "high_flow_cfs": "number or null",
+  "stream_simulation_design": "boolean or null",
+  "climate_change_impacts": "summary string or null",
+  "habitat_improvements": ["list of improvements"]
+}
+"""

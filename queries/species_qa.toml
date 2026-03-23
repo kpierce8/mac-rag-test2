@@ -1,0 +1,4 @@
+# Example: plain-text Q&A scoped to a single file
+query = "What species are mentioned and what is their conservation status?"
+file = "wdfw00760.pdf"
+top_k = 8
