@@ -1,21 +1,65 @@
-# Example: structured extraction of environmental permitting data
-query = "Extract environmental permitting data from this project"
+# Structured extraction of environmental permitting data
+# Each [[fields]] entry runs its own vector search to find the most relevant chunks.
 folder = "/Users/ken/DLRepos/mac-rag-test2/data/35564/"
 structured = true
-top_k = 12
-model = "qwen2.5vl:7b"
-system_prompt = """
-You are an environmental permitting data extraction assistant.
-Extract the following fields as a JSON object. Use null for unknowns.
+model = "qwen2.5:7b"
 
-{
-  "project_name": "string",
-  "permit_type": "string",
-  "species": ["list of species mentioned"],
-  "bankfull_width_ft": "number or null",
-  "high_flow_cfs": "number or null",
-  "stream_simulation_design": "boolean or null",
-  "climate_change_impacts": "summary string or null",
-  "habitat_improvements": ["list of improvements"]
-}
-"""
+[[fields]]
+name = "project_name"
+query = "project name restoration agreement title sponsor applicant"
+description = "string — the formal name of the restoration or construction project; often appears on the cover page, header, or first paragraph"
+top_k = 5
+
+[[fields]]
+name = "permit_type"
+query = "permit type HPA hydraulic project approval section 404 SEPA regulatory agency"
+description = "string — the regulatory permit type, e.g. Hydraulic Project Approval (HPA), Section 404, SEPA"
+top_k = 3
+
+[[fields]]
+name = "project_type"
+query = "project type culvert replacement bank stabilization fish passage riparian planting armoring removal"
+description = "string — the category of work being done, e.g. culvert replacement, bank stabilization, fish passage improvement, riparian planting, removal of shoreline armoring"
+top_k = 3
+
+[[fields]]
+name = "project_description"
+query = "project description purpose goals ecological restoration objectives"
+description = "string — 2-3 sentence summary of what physical work is being done, where, and the stated ecological purpose"
+top_k = 5
+
+[[fields]]
+name = "species"
+query = "species fish wildlife plants Chinook coho steelhead salmon bull trout listed threatened endangered"
+description = "list of strings — all fish, wildlife, or plant species mentioned by common or scientific name, including ESA-listed species"
+top_k = 15
+
+[[fields]]
+name = "bankfull_width_ft"
+query = "bankfull width feet BFW channel width hydraulic design table"
+description = "number — bankfull channel width in feet; often labeled BFW or bankfull width in hydraulic design tables"
+top_k = 5
+
+[[fields]]
+name = "high_flow_cfs"
+query = "Q100 100-year flow peak discharge cubic feet per second design flood flow rate"
+description = "number — design high flow in cubic feet per second; may be labeled Q100, 100-year flow, or peak discharge"
+top_k = 5
+
+[[fields]]
+name = "stream_simulation_design"
+query = "stream simulation no-slope natural bed material culvert design methodology"
+description = "boolean — true if designed using stream simulation methodology; look for 'stream simulation', 'no-slope', or 'natural bed material'"
+top_k = 3
+
+[[fields]]
+name = "climate_change_impacts"
+query = "climate change flow projections temperature habitat shift future conditions"
+description = "string — any mention of how climate change was considered in design, including flow projections, temperature, or habitat shift concerns"
+top_k = 3
+
+[[fields]]
+name = "habitat_improvements"
+query = "habitat improvements large woody debris pool riffle complexity fish passage barrier removal"
+description = "list of strings — specific habitat improvements described, e.g. added pool/riffle complexity, installed large woody debris, removed fish passage barrier"
+top_k = 5

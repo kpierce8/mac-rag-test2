@@ -53,6 +53,7 @@ def _load_config(args: argparse.Namespace) -> dict:
     """Merge TOML config (if provided) with CLI overrides. CLI flags win."""
     config = {
         "query": None,
+        "fields": None,  # list of {name, query, description, top_k} — multi-query mode
         "folder": None,
         "file": None,
         "top_k": 8,
@@ -86,7 +87,11 @@ def _load_config(args: argparse.Namespace) -> dict:
     if args.system_prompt is not None:
         config["system_prompt"] = args.system_prompt
 
-    if not config["query"]:
+    # Multi-query field mode requires structured output
+    if config["fields"]:
+        config["structured"] = True
+
+    if not config["query"] and not config["fields"]:
         console.print("[red]Error: query is required (set in TOML or pass --query)[/red]")
         sys.exit(1)
 
@@ -178,6 +183,37 @@ def _extract_json(text: str) -> dict:
     raise ValueError(f"Could not parse JSON from LLM response:\n{stripped[:500]}")
 
 
+def _search_fields(fields: list[dict], doc_ids: list[str] | None) -> tuple[list[dict], dict[str, list[str]]]:
+    """Run a separate vector search for each field, return deduplicated hits and per-field chunk ids."""
+    seen: dict[str, dict] = {}  # chunk_id -> hit
+    field_chunks: dict[str, list[str]] = {}  # field name -> [chunk_ids]
+
+    for field in fields:
+        top_k = field.get("top_k", 5)
+        hits = search(field["query"], top_k=top_k, source_doc_ids=doc_ids)
+        ids = []
+        for hit in hits:
+            cid = hit.get("chunk_id", "")
+            if cid and cid not in seen:
+                seen[cid] = hit
+            if cid:
+                ids.append(cid)
+        field_chunks[field["name"]] = ids
+        console.print(f"  [dim]{field['name']}[/dim]: {len(hits)} chunks retrieved")
+
+    return list(seen.values()), field_chunks
+
+
+def _build_field_schema(fields: list[dict]) -> str:
+    """Build a JSON schema string from [[fields]] entries for the LLM prompt."""
+    lines = ["Extract the following fields as a JSON object. Use null for any field you cannot determine.\n\n{"]
+    for i, field in enumerate(fields):
+        comma = "," if i < len(fields) - 1 else ""
+        lines.append(f'  "{field["name"]}": "{field["description"]}"{comma}')
+    lines.append("}")
+    return "\n".join(lines)
+
+
 def _print_sources(db, hits: list[dict]) -> None:
     """Print a compact sources list below the answer."""
     console.print("\n[bold]Sources:[/bold]")
@@ -218,25 +254,34 @@ def main() -> None:
     if doc_ids is not None and len(doc_ids) == 0:
         return
 
-    # Retrieve relevant chunks
-    hits = search(cfg["query"], top_k=cfg["top_k"], source_doc_ids=doc_ids)
-    if not hits:
-        console.print("[yellow]No relevant chunks found.[/yellow]")
-        return
-
-    console.print(f"Retrieved {len(hits)} chunks, calling [cyan]{cfg['model']}[/cyan]...")
-
-    # Build context and ask LLM
-    context = _build_context(db, hits)
-    user_message = f"Context:\n{context}\n\nQuestion: {cfg['query']}"
-
-    # Select system prompt
-    if cfg["system_prompt"]:
-        system_prompt = cfg["system_prompt"]
-    elif cfg["structured"]:
-        system_prompt = DEFAULT_STRUCTURED_PROMPT
+    # Multi-query field mode: one search per field, merged context
+    if cfg["fields"]:
+        console.print(f"Running [cyan]{len(cfg['fields'])}[/cyan] field queries...")
+        hits, field_chunks = _search_fields(cfg["fields"], doc_ids)
+        if not hits:
+            console.print("[yellow]No relevant chunks found.[/yellow]")
+            return
+        console.print(f"Merged to {len(hits)} unique chunks, calling [cyan]{cfg['model']}[/cyan]...")
+        context = _build_context(db, hits)
+        schema = _build_field_schema(cfg["fields"])
+        user_message = f"Context:\n{context}\n\n{schema}"
+        system_prompt = cfg.get("system_prompt") or "You are a structured data extraction assistant. Return only valid JSON, no explanatory text outside the JSON."
     else:
-        system_prompt = SYSTEM_PROMPT
+        # Single-query mode (plain Q&A or simple structured)
+        hits = search(cfg["query"], top_k=cfg["top_k"], source_doc_ids=doc_ids)
+        field_chunks = {}
+        if not hits:
+            console.print("[yellow]No relevant chunks found.[/yellow]")
+            return
+        console.print(f"Retrieved {len(hits)} chunks, calling [cyan]{cfg['model']}[/cyan]...")
+        context = _build_context(db, hits)
+        user_message = f"Context:\n{context}\n\nQuestion: {cfg['query']}"
+        if cfg["system_prompt"]:
+            system_prompt = cfg["system_prompt"]
+        elif cfg["structured"]:
+            system_prompt = DEFAULT_STRUCTURED_PROMPT
+        else:
+            system_prompt = SYSTEM_PROMPT
 
     answer = _call_ollama(cfg["model"], system_prompt, user_message)
 
@@ -252,13 +297,15 @@ def main() -> None:
         # Store in MongoDB
         chunk_ids = [h.get("chunk_id", "") for h in hits]
         extraction = {
-            "query": cfg["query"],
+            "query": cfg.get("query"),
+            "fields": [f["name"] for f in cfg["fields"]] if cfg["fields"] else None,
             "system_prompt": system_prompt,
             "source_doc_ids": doc_ids or [],
             "folder": cfg["folder"],
             "result": result,
             "model": cfg["model"],
             "chunk_ids": chunk_ids,
+            "field_chunks": field_chunks,
             "pipeline_version": PIPELINE_VERSION,
         }
         extraction_id = insert_extraction(db, extraction)
